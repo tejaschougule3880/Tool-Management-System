@@ -19,6 +19,19 @@ public class MovementController {
     @CacheEvict(value = "tools", allEntries = true)
     @PostMapping
     public ResponseEntity<?> recordMovement(@RequestBody ToolMovement movement) {
+        if ("SHARPEN_OUT".equals(movement.getMovementType())
+                && (movement.getChallanNo() == null || movement.getChallanNo().trim().isEmpty())) {
+            return ResponseEntity.badRequest().body("{\"status\": false, \"message\": \"Challan No is required for sharpening transactions\"}");
+        }
+
+        if ("STOCK_IN".equals(movement.getMovementType())
+                && (movement.getSerials() == null
+                || movement.getIssueNumbers() == null
+                || movement.getSerials().size() != movement.getIssueNumbers().size()
+                || movement.getIssueNumbers().stream().anyMatch(issueNo -> issueNo == null || issueNo.trim().isEmpty()))) {
+            return ResponseEntity.badRequest().body("{\"status\": false, \"message\": \"Issue No is required for every new stock serial\"}");
+        }
+
         boolean isRecorded = movementRepository.recordMovement(movement);
 
         if (isRecorded) {

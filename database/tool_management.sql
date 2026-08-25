@@ -118,6 +118,7 @@ CREATE TABLE `tool_instance` (
   `instance_id` int(11) NOT NULL,
   `tool_id` int(11) NOT NULL,
   `serial_number` varchar(100) NOT NULL,
+  `issue_no` varchar(100) NOT NULL DEFAULT '',
   `current_status` varchar(50) DEFAULT 'AVAILABLE',
   `current_machine_id` int(11) DEFAULT NULL,
   `current_project_id` int(11) DEFAULT NULL
@@ -137,6 +138,7 @@ CREATE TABLE `tool_movement` (
   `quantity` int(11) NOT NULL,
   `involved_serials` varchar(500) DEFAULT NULL,
   `movement_type` enum('STOCK_IN','ISSUE','RETURN','SHARPEN_OUT','SHARPEN_IN','SCRAP') DEFAULT NULL,
+  `challan_no` varchar(100) NOT NULL DEFAULT '',
   `movement_date` datetime DEFAULT current_timestamp(),
   `remarks` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

@@ -21,12 +21,14 @@ export default function ToolDetails() {
     quantity: 1, 
     machineId: '',
     projectId: '',
+    challanNo: '',
     remarks: ''
   });
 
   const [availableSerials, setAvailableSerials] = useState([]);
   const [selectedSerials, setSelectedSerials] = useState([]); 
   const [stockInSerials, setStockInSerials] = useState(['']); 
+  const [stockInIssueNumbers, setStockInIssueNumbers] = useState(['']);
   const [serialSearch, setSerialSearch] = useState('');
   
   const [history, setHistory] = useState([]);
@@ -190,9 +192,13 @@ export default function ToolDetails() {
     let newQty = parseInt(e.target.value);
     if (isNaN(newQty) || newQty < 1) newQty = 1;
     const newSerials = [...stockInSerials];
+    const newIssueNumbers = [...stockInIssueNumbers];
     while (newSerials.length < newQty) newSerials.push('');
+    while (newIssueNumbers.length < newQty) newIssueNumbers.push('');
     if (newSerials.length > newQty) newSerials.length = newQty;
+    if (newIssueNumbers.length > newQty) newIssueNumbers.length = newQty;
     setStockInSerials(newSerials);
+    setStockInIssueNumbers(newIssueNumbers);
   };
 
   const handleSubmit = async (e) => {
@@ -205,13 +211,24 @@ export default function ToolDetails() {
       return;
     }
 
+    if (movement.movementType === 'STOCK_IN' && stockInIssueNumbers.some(issueNo => !issueNo.trim())) {
+      alert('Issue No is required for every new stock serial.');
+      return;
+    }
+
+    if (movement.movementType === 'SHARPEN_OUT' && !movement.challanNo.trim()) {
+      alert('Challan No is required when sending tools to sharpening.');
+      return;
+    }
+
     try {
       const payload = {
         ...movement,
         machineId: movement.machineId ? parseInt(movement.machineId) : null,
         projectId: movement.projectId ? parseInt(movement.projectId) : null,
         quantity: activeSerials.length,
-        serials: activeSerials 
+        serials: activeSerials,
+        issueNumbers: movement.movementType === 'STOCK_IN' ? stockInIssueNumbers : []
       };
 
       const response = await axios.post(`${API_URL}/api/movements`, payload);
@@ -221,8 +238,9 @@ export default function ToolDetails() {
         
         setSelectedSerials([]);
         setStockInSerials(['']);
+        setStockInIssueNumbers(['']);
         setSerialSearch(''); 
-        setMovement({ ...movement, remarks: '', machineId: '', projectId: '' });
+        setMovement({ ...movement, remarks: '', challanNo: '', machineId: '', projectId: '' });
         
         // 🚀 CACHE INVALIDATION: Wipe Dashboard cache so it fetches fresh numbers next time
         sessionStorage.removeItem('dashboard_tools');
@@ -393,7 +411,7 @@ export default function ToolDetails() {
                   <div className="row g-2">
                     {stockInSerials.map((serial, index) => (
                       <div key={index} className="col-md-6">
-                        <div className="input-group input-group-sm">
+                        <div className="input-group input-group-sm mb-1">
                           <span className="input-group-text bg-white text-muted fw-bold">#{index + 1}</span>
                           <input 
                             id={`stock-in-${index}`}
@@ -416,6 +434,19 @@ export default function ToolDetails() {
                             }}
                           />
                         </div>
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          placeholder="Issue No (e.g., ISS-2026-A)"
+                          aria-label={`Issue number for serial ${index + 1}`}
+                          required
+                          value={stockInIssueNumbers[index]}
+                          onChange={(e) => {
+                            const updated = [...stockInIssueNumbers];
+                            updated[index] = e.target.value;
+                            setStockInIssueNumbers(updated);
+                          }}
+                        />
                       </div>
                     ))}
                   </div>
@@ -529,6 +560,20 @@ export default function ToolDetails() {
                 </div>
               )}
 
+              {movement.movementType === 'SHARPEN_OUT' && (
+                <div className="mb-4">
+                  <label className="form-label fw-semibold">Challan No <span className="text-danger">*</span></label>
+                  <input
+                    type="text"
+                    className="form-control bg-light"
+                    placeholder="Enter challan number"
+                    value={movement.challanNo}
+                    onChange={(e) => setMovement({ ...movement, challanNo: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
+
               <div className="mb-4">
                 <label className="form-label fw-semibold">Remarks / Notes</label>
                 <input type="text" className="form-control bg-light" placeholder="e.g., Broken edge, given to John"
@@ -628,6 +673,7 @@ export default function ToolDetails() {
                   <tr>
                     <th>Select</th>
                     <th>Serial Number</th>
+                    <th>Issue No</th>
                     <th>Status</th>
                     <th className="text-end">Action</th>
                   </tr>
@@ -646,6 +692,7 @@ export default function ToolDetails() {
                           />
                         </td>
                         <td className="font-monospace fw-semibold">{instance.serialNumber}</td>
+                        <td className="fw-semibold text-secondary">{instance.issueNo || '-'}</td>
                         <td>
                           <span className={`badge ${instance.currentStatus === 'DAMAGED' ? 'bg-danger' : instance.currentStatus === 'AVAILABLE' ? 'bg-success' : 'bg-secondary'}`}>
                             {instance.currentStatus}
@@ -659,7 +706,7 @@ export default function ToolDetails() {
                       </tr>
                     ))}
                   {filteredInstances.length === 0 && (
-                    <tr><td colSpan="4" className="text-center text-muted py-3">No physical tools found.</td></tr>
+                    <tr><td colSpan="5" className="text-center text-muted py-3">No physical tools found.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -729,12 +776,13 @@ export default function ToolDetails() {
                   <th>Serials</th> 
                   <th>Machine</th>
                   <th>Project</th>
+                  <th>Challan No</th>
                   <th>Remarks</th>
                 </tr>
               </thead>
               <tbody>
                 {displayHistory.length === 0 ? (
-                  <tr><td colSpan={isInventory ? "8" : "7"} className="text-center py-4 text-muted">No movements found.</td></tr>
+                  <tr><td colSpan={isInventory ? "9" : "8"} className="text-center py-4 text-muted">No movements found.</td></tr>
                 ) : (
                   displayHistory.map((record) => (
                     <tr key={record.movementId} className={selectedHistoryIds.includes(record.movementId) ? "table-active" : ""}>
@@ -763,6 +811,7 @@ export default function ToolDetails() {
                       </td>
                       <td className="fw-semibold text-dark small">{record.machineName || '-'}</td>
                       <td className="fw-semibold text-dark small">{record.projectName || '-'}</td>
+                      <td className="fw-semibold text-dark small">{record.challanNo || '-'}</td>
                       <td className="small text-secondary">{record.remarks || '-'}</td>
                     </tr>
                   ))

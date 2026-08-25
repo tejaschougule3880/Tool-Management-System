@@ -34,17 +34,18 @@ public class MovementRepository {
             }
 
             // 🚀 STEP 1: Record the movement in tool_movement table
-            String sqlMove = "INSERT INTO tool_movement (tool_id, machine_id, project_id, quantity, involved_serials, movement_type, remarks) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            String sqlMove = "INSERT INTO tool_movement (tool_id, machine_id, project_id, quantity, involved_serials, movement_type, challan_no, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             
-            Object[] moveParams = new Object[7];
-            int[] moveTypes = new int[7];
+            Object[] moveParams = new Object[8];
+            int[] moveTypes = new int[8];
             moveParams[0] = movement.getToolId();
             moveParams[1] = movement.getMachineId();
             moveParams[2] = movement.getProjectId();
             moveParams[3] = movement.getQuantity();
             moveParams[4] = joinedSerials;
             moveParams[5] = movement.getMovementType();
-            moveParams[6] = movement.getRemarks();
+            moveParams[6] = movement.getChallanNo() == null ? "" : movement.getChallanNo().trim();
+            moveParams[7] = movement.getRemarks();
             
             moveTypes[0] = Types.INTEGER;
             moveTypes[1] = Types.INTEGER;
@@ -53,6 +54,7 @@ public class MovementRepository {
             moveTypes[4] = Types.VARCHAR;
             moveTypes[5] = Types.VARCHAR;
             moveTypes[6] = Types.VARCHAR;
+            moveTypes[7] = Types.VARCHAR;
             
             jdbcTemplate.update(sqlMove, moveParams, moveTypes);
 
@@ -61,11 +63,12 @@ public class MovementRepository {
 
                 if ("STOCK_IN".equals(movement.getMovementType())) {
                     // 🚀 Insert new tool instances with UPSERT for reused serials
-                    String sqlInsert = "INSERT INTO tool_instance (tool_id, serial_number, current_status) VALUES (?, ?, 'AVAILABLE') " +
-                            "ON DUPLICATE KEY UPDATE current_status = 'AVAILABLE', tool_id = VALUES(tool_id)";
+                        String sqlInsert = "INSERT INTO tool_instance (tool_id, serial_number, issue_no, current_status) VALUES (?, ?, ?, 'AVAILABLE') " +
+                            "ON DUPLICATE KEY UPDATE current_status = 'AVAILABLE', issue_no = VALUES(issue_no), tool_id = VALUES(tool_id)";
                     
-                    for (String serial : movement.getSerials()) {
-                        jdbcTemplate.update(sqlInsert, movement.getToolId(), serial);
+                        for (int index = 0; index < movement.getSerials().size(); index++) {
+                        jdbcTemplate.update(sqlInsert, movement.getToolId(), movement.getSerials().get(index),
+                            movement.getIssueNumbers().get(index).trim());
                     }
                 } else {
                     // 🚀 Update existing serials based on movement type
@@ -115,6 +118,7 @@ public class MovementRepository {
             m.setQuantity(rs.getInt("quantity"));
             m.setInvolvedSerials(rs.getString("involved_serials"));
             m.setMovementType(rs.getString("movement_type"));
+            m.setChallanNo(rs.getString("challan_no"));
             m.setMovementDate(rs.getString("movement_date"));
             m.setRemarks(rs.getString("remarks"));
             m.setMachineName(rs.getString("machine_name"));

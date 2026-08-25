@@ -31,6 +31,7 @@ public class ToolInstanceController {
             ti.setInstanceId(rs.getInt("instance_id"));
             ti.setToolId(rs.getInt("tool_id"));
             ti.setSerialNumber(rs.getString("serial_number"));
+            ti.setIssueNo(rs.getString("issue_no"));
             ti.setCurrentStatus(rs.getString("current_status"));
             return ti;
         }, toolId, status);
@@ -46,6 +47,7 @@ public class ToolInstanceController {
             ti.setInstanceId(rs.getInt("instance_id"));
             ti.setToolId(rs.getInt("tool_id"));
             ti.setSerialNumber(rs.getString("serial_number"));
+            ti.setIssueNo(rs.getString("issue_no"));
             ti.setCurrentStatus(rs.getString("current_status"));
             return ti;
         }, toolId);

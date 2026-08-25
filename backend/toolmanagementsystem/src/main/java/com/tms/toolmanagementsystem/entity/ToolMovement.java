@@ -8,9 +8,11 @@ public class ToolMovement {
     private Integer quantity;
     private String movementType; // STOCK_IN, ISSUE, RETURN, SHARPEN_OUT, SHARPEN_IN, SCRAP
     private String movementDate; // We can let MySQL auto-generate this, or pass it as string
+    private String challanNo;
     private String remarks;
     // Add this near your other variables at the top
     private java.util.List<String> serials;
+    private java.util.List<String> issueNumbers;
     // Add these variables near the top
     private String machineName;
     private String projectName;
@@ -30,6 +32,9 @@ public class ToolMovement {
     public void setSerials(java.util.List<String> serials) {
         this.serials = serials;
     }
+
+    public java.util.List<String> getIssueNumbers() { return issueNumbers; }
+    public void setIssueNumbers(java.util.List<String> issueNumbers) { this.issueNumbers = issueNumbers; }
     // This holds the exact string from the database (e.g. "EM10-001, EM10-002")
     private String involvedSerials;
 
@@ -60,4 +65,7 @@ public class ToolMovement {
 
     public String getRemarks() { return remarks; }
     public void setRemarks(String remarks) { this.remarks = remarks; }
+
+    public String getChallanNo() { return challanNo; }
+    public void setChallanNo(String challanNo) { this.challanNo = challanNo; }
 }
