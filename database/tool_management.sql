@@ -139,6 +139,7 @@ CREATE TABLE `tool_movement` (
   `involved_serials` varchar(500) DEFAULT NULL,
   `movement_type` enum('STOCK_IN','ISSUE','RETURN','SHARPEN_OUT','SHARPEN_IN','SCRAP') DEFAULT NULL,
   `challan_no` varchar(100) NOT NULL DEFAULT '',
+  `involved_issue_numbers` varchar(500) NOT NULL DEFAULT '',
   `movement_date` datetime DEFAULT current_timestamp(),
   `remarks` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

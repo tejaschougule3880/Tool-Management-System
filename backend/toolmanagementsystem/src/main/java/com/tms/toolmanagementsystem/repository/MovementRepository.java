@@ -32,12 +32,16 @@ public class MovementRepository {
             if (movement.getSerials() != null && !movement.getSerials().isEmpty()) {
                 joinedSerials = String.join(", ", movement.getSerials());
             }
+            String joinedIssueNumbers = null;
+            if (movement.getIssueNumbers() != null && !movement.getIssueNumbers().isEmpty()) {
+                joinedIssueNumbers = String.join(", ", movement.getIssueNumbers());
+            }
 
             // 🚀 STEP 1: Record the movement in tool_movement table
-            String sqlMove = "INSERT INTO tool_movement (tool_id, machine_id, project_id, quantity, involved_serials, movement_type, challan_no, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            String sqlMove = "INSERT INTO tool_movement (tool_id, machine_id, project_id, quantity, involved_serials, movement_type, challan_no, involved_issue_numbers, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
-            Object[] moveParams = new Object[8];
-            int[] moveTypes = new int[8];
+            Object[] moveParams = new Object[9];
+            int[] moveTypes = new int[9];
             moveParams[0] = movement.getToolId();
             moveParams[1] = movement.getMachineId();
             moveParams[2] = movement.getProjectId();
@@ -45,7 +49,8 @@ public class MovementRepository {
             moveParams[4] = joinedSerials;
             moveParams[5] = movement.getMovementType();
             moveParams[6] = movement.getChallanNo() == null ? "" : movement.getChallanNo().trim();
-            moveParams[7] = movement.getRemarks();
+            moveParams[7] = joinedIssueNumbers == null ? "" : joinedIssueNumbers;
+            moveParams[8] = movement.getRemarks();
             
             moveTypes[0] = Types.INTEGER;
             moveTypes[1] = Types.INTEGER;
@@ -55,6 +60,7 @@ public class MovementRepository {
             moveTypes[5] = Types.VARCHAR;
             moveTypes[6] = Types.VARCHAR;
             moveTypes[7] = Types.VARCHAR;
+            moveTypes[8] = Types.VARCHAR;
             
             jdbcTemplate.update(sqlMove, moveParams, moveTypes);
 
@@ -119,6 +125,7 @@ public class MovementRepository {
             m.setInvolvedSerials(rs.getString("involved_serials"));
             m.setMovementType(rs.getString("movement_type"));
             m.setChallanNo(rs.getString("challan_no"));
+            m.setInvolvedIssueNumbers(rs.getString("involved_issue_numbers"));
             m.setMovementDate(rs.getString("movement_date"));
             m.setRemarks(rs.getString("remarks"));
             m.setMachineName(rs.getString("machine_name"));

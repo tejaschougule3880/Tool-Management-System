@@ -37,10 +37,13 @@ public class ToolMovement {
     public void setIssueNumbers(java.util.List<String> issueNumbers) { this.issueNumbers = issueNumbers; }
     // This holds the exact string from the database (e.g. "EM10-001, EM10-002")
     private String involvedSerials;
+    private String involvedIssueNumbers;
 
     // Getters and Setters
     public String getInvolvedSerials() { return involvedSerials; }
     public void setInvolvedSerials(String involvedSerials) { this.involvedSerials = involvedSerials; }
+    public String getInvolvedIssueNumbers() { return involvedIssueNumbers; }
+    public void setInvolvedIssueNumbers(String involvedIssueNumbers) { this.involvedIssueNumbers = involvedIssueNumbers; }
     // Getters and Setters
     public Integer getMovementId() { return movementId; }
     public void setMovementId(Integer movementId) { this.movementId = movementId; }

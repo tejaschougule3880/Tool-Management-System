@@ -103,11 +103,20 @@ export default function ToolDetails() {
     }
   };
 
-  const displayHistory = history.filter(record => 
-    historySearch === '' || 
-    (record.involvedSerials && record.involvedSerials.toLowerCase().includes(historySearch.toLowerCase())) ||
-    (record.movementType && record.movementType.toLowerCase().includes(historySearch.toLowerCase()))
-  );
+  const displayHistory = history.filter(record => {
+    const searchValue = historySearch.toLowerCase();
+    return searchValue === '' || [
+      record.movementDate,
+      record.movementType,
+      record.quantity,
+      record.involvedSerials,
+      record.machineName,
+      record.projectName,
+      record.challanNo,
+      record.involvedIssueNumbers,
+      record.remarks
+    ].some(value => String(value || '').toLowerCase().includes(searchValue));
+  });
 
   useEffect(() => {
     // 🚀 SECURITY FIX: Block unassigned non-OWNER users from accessing tool details
@@ -777,12 +786,13 @@ export default function ToolDetails() {
                   <th>Machine</th>
                   <th>Project</th>
                   <th>Challan No</th>
+                  <th>Issue No</th>
                   <th>Remarks</th>
                 </tr>
               </thead>
               <tbody>
                 {displayHistory.length === 0 ? (
-                  <tr><td colSpan={isInventory ? "9" : "8"} className="text-center py-4 text-muted">No movements found.</td></tr>
+                  <tr><td colSpan={isInventory ? "10" : "9"} className="text-center py-4 text-muted">No movements found.</td></tr>
                 ) : (
                   displayHistory.map((record) => (
                     <tr key={record.movementId} className={selectedHistoryIds.includes(record.movementId) ? "table-active" : ""}>
@@ -812,6 +822,7 @@ export default function ToolDetails() {
                       <td className="fw-semibold text-dark small">{record.machineName || '-'}</td>
                       <td className="fw-semibold text-dark small">{record.projectName || '-'}</td>
                       <td className="fw-semibold text-dark small">{record.challanNo || '-'}</td>
+                      <td className="fw-semibold text-dark small">{record.involvedIssueNumbers || '-'}</td>
                       <td className="small text-secondary">{record.remarks || '-'}</td>
                     </tr>
                   ))
