@@ -64,16 +64,30 @@ public class DBConnection {
     }
 
     public static Connection getConnection() throws SQLException {
-        // 1. Try to read the Railway Environment Variables first
-        String url = System.getenv("DB_URL");
-        String user = System.getenv("DB_USER");
-        String password = System.getenv("DB_PASSWORD");
+        String url = firstNonBlank(
+                System.getenv("DB_URL"),
+                System.getenv("DATABASE_URL"),
+                System.getenv("MYSQL_URL"),
+                System.getenv("SPRING_DATASOURCE_URL"),
+                "jdbc:mysql://localhost:3306/tool_management"
+        );
+        String user = firstNonBlank(
+                System.getenv("DB_USER"),
+                System.getenv("DB_USERNAME"),
+                System.getenv("MYSQLUSER"),
+                System.getenv("SPRING_DATASOURCE_USERNAME"),
+                "root"
+        );
+        String password = firstNonBlank(
+                System.getenv("DB_PASSWORD"),
+                System.getenv("DB_PASS"),
+                System.getenv("MYSQLPASSWORD"),
+                System.getenv("SPRING_DATASOURCE_PASSWORD"),
+                "admin"
+        );
 
-        // 2. If they are null (because you are running it locally on your laptop), use your local XAMPP credentials
-        if (url == null || url.trim().isEmpty()) {
-            url = "jdbc:mysql://localhost:3306/tool_management";
-            user = "root";
-            password = "admin"; 
+        if (url != null && url.startsWith("mysql://")) {
+            url = "jdbc:" + url;
         }
 
         try {
@@ -82,5 +96,17 @@ public class DBConnection {
         } catch (ClassNotFoundException e) {
             throw new SQLException("MySQL Driver not found", e);
         }
+    }
+
+    private static String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (value != null && !value.trim().isEmpty()) {
+                return value;
+            }
+        }
+        return null;
     }
 }
