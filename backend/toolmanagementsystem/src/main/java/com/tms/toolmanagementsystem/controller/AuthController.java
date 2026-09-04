@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -24,6 +26,8 @@ import com.tms.toolmanagementsystem.util.JwtUtil;
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "${cors.allowed-origins}")
 public class AuthController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @Autowired
     private UserRepository userRepository;
@@ -116,9 +120,11 @@ public class AuthController {
 
                 HttpResponse<String> resendResponse = httpClient.send(resendRequest, HttpResponse.BodyHandlers.ofString());
                 if (resendResponse.statusCode() < 200 || resendResponse.statusCode() >= 300) {
+                    logger.error("Resend rejected OTP email: status={}, response={}",
+                            resendResponse.statusCode(), resendResponse.body());
                     otpStorage.remove(username);
                     otpExpiry.remove(username);
-                    return ResponseEntity.status(502).body("{\"status\": false, \"message\": \"Failed to send Email.\"}");
+                    return ResponseEntity.status(502).body("{\"status\": false, \"message\": \"Resend rejected the email. Check the verified sender address.\"}");
                 }
 
                 return ResponseEntity.ok("{\"status\": true, \"message\": \"OTP sent to registered email address.\"}");
