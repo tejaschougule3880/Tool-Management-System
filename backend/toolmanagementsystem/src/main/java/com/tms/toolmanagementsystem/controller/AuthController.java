@@ -5,14 +5,19 @@ import com.tms.toolmanagementsystem.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.security.SecureRandom;
 import com.tms.toolmanagementsystem.util.JwtUtil;
 
 @RestController
@@ -23,14 +28,18 @@ public class AuthController {
     @Autowired
     private UserRepository userRepository;
 
-    // 🚀 NEW: Spring's built-in email sender
-    @Autowired
-    private JavaMailSender mailSender;
-    @Value("${spring.mail.username}")
+    @Value("${resend.api-key}")
+    private String resendApiKey;
+
+    @Value("${resend.from-email}")
     private String senderEmail;
 
-    // Temporary storage for OTPs.
-    private Map<String, String> otpStorage = new HashMap<>();
+    private final Map<String, String> otpStorage = new ConcurrentHashMap<>();
+    private final Map<String, Long> otpExpiry = new ConcurrentHashMap<>();
+    private final Set<String> verifiedResetUsers = ConcurrentHashMap.newKeySet();
+    private final SecureRandom secureRandom = new SecureRandom();
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -86,25 +95,36 @@ public class AuthController {
                 return ResponseEntity.badRequest().body("{\"status\": false, \"message\": \"Invalid email address configured for user.\"}");
             }
 
-            // Generate 4-digit OTP
-            String otp = String.format("%04d", new Random().nextInt(10000));
+            String otp = String.format("%04d", secureRandom.nextInt(10000));
             otpStorage.put(username, otp);
+            otpExpiry.put(username, System.currentTimeMillis() + 10 * 60 * 1000L);
+            verifiedResetUsers.remove(username);
 
             try {
-                // 🚀 Fire the Email!
-                SimpleMailMessage message = new SimpleMailMessage();
+                Map<String, Object> email = new HashMap<>();
+                email.put("from", senderEmail);
+                email.put("to", new String[]{toAddress});
+                email.put("subject", "TMS Password Reset OTP");
+                email.put("text", "Hello " + username + ",\n\nYour OTP to reset your Tool Management System password is: " + otp + "\n\nThis code expires in 10 minutes. If you did not request this, please ignore this email.");
 
-                message.setFrom(senderEmail); // 🚀 ADD THIS LINE!
+                HttpRequest resendRequest = HttpRequest.newBuilder()
+                        .uri(URI.create("https://api.resend.com/emails"))
+                        .header("Authorization", "Bearer " + resendApiKey)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(email)))
+                        .build();
 
-                message.setTo(toAddress);
-                message.setSubject("TMS Password Reset OTP");
-                message.setText("Hello " + username + ",\n\nYour OTP to reset your Tool Management System password is: " + otp + "\n\nIf you did not request this, please ignore this email.");
-
-                mailSender.send(message);
+                HttpResponse<String> resendResponse = httpClient.send(resendRequest, HttpResponse.BodyHandlers.ofString());
+                if (resendResponse.statusCode() < 200 || resendResponse.statusCode() >= 300) {
+                    otpStorage.remove(username);
+                    otpExpiry.remove(username);
+                    return ResponseEntity.status(502).body("{\"status\": false, \"message\": \"Failed to send Email.\"}");
+                }
 
                 return ResponseEntity.ok("{\"status\": true, \"message\": \"OTP sent to registered email address.\"}");
             } catch (Exception e) {
-                e.printStackTrace();
+                otpStorage.remove(username);
+                otpExpiry.remove(username);
                 return ResponseEntity.status(500).body("{\"status\": false, \"message\": \"Failed to send Email. Server error.\"}");
             }
         }
@@ -117,9 +137,17 @@ public class AuthController {
         String username = request.get("username");
         String userOtp = request.get("otp");
 
-        if (otpStorage.containsKey(username) && otpStorage.get(username).equals(userOtp)) {
+        Long expiry = otpExpiry.get(username);
+        if (otpStorage.containsKey(username) && expiry != null && expiry > System.currentTimeMillis()
+                && otpStorage.get(username).equals(userOtp)) {
             otpStorage.remove(username); // Clear it so it can't be reused
+            otpExpiry.remove(username);
+            verifiedResetUsers.add(username);
             return ResponseEntity.ok("{\"status\": true, \"message\": \"OTP Verified.\"}");
+        }
+        if (expiry != null && expiry <= System.currentTimeMillis()) {
+            otpStorage.remove(username);
+            otpExpiry.remove(username);
         }
         return ResponseEntity.status(401).body("{\"status\": false, \"message\": \"Invalid or Expired OTP.\"}");
     }
@@ -129,6 +157,11 @@ public class AuthController {
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
         String username = request.get("username");
         String newPassword = request.get("newPassword");
+
+        if (!verifiedResetUsers.remove(username)) {
+            return ResponseEntity.status(401).body("{\"status\": false, \"message\": \"OTP verification required.\"}");
+        }
+
         String hashedPassword = passwordEncoder.encode(newPassword);
 
         boolean isUpdated = userRepository.updateUserPassword(username, hashedPassword);
