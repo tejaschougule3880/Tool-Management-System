@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from '../config';
+import { canManageInventory } from '../permissions';
 
 export default function AddTool() {
   const navigate = useNavigate();
@@ -9,7 +10,7 @@ export default function AddTool() {
   const activeProjectId = localStorage.getItem('activeProjectId');
 
   useEffect(() => {
-    if (userRole !== 'INVENTORY' && userRole !== 'OWNER') {
+    if (!canManageInventory(userRole)) {
       navigate('/dashboard');
     }
   }, [userRole, navigate]);

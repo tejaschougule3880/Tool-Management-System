@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from '../config';
+import { canManageInventory } from '../permissions';
 
 export default function EditTool() {
   const { id } = useParams(); 
@@ -9,7 +10,7 @@ export default function EditTool() {
   const userRole = localStorage.getItem('userRole');
 
   useEffect(() => {
-    if (userRole !== 'INVENTORY' && userRole !== 'OWNER') navigate('/dashboard');
+    if (!canManageInventory(userRole)) navigate('/dashboard');
   }, [userRole, navigate]);
 
   const [formData, setFormData] = useState({

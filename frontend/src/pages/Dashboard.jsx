@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from '../config';
+import { canManageInventory, isOwner } from '../permissions';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -13,8 +14,8 @@ export default function Dashboard() {
   const assignedPlantId = localStorage.getItem('assignedPlantId');
   const assignedDeptId = localStorage.getItem('assignedDeptId');
 
-  const isInventory = userRole === 'INVENTORY' || userRole === 'OWNER';
-  const canManage = userRole === 'INVENTORY' || userRole === 'OWNER';
+  const isInventory = canManageInventory(userRole);
+  const canManage = isInventory;
 
   const [tools, setTools] = useState([]); 
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,7 +26,7 @@ export default function Dashboard() {
     if (!userRole) { navigate('/login'); return; }
     
     // 🚀 SECURITY FIX: Block unassigned non-OWNER users from accessing dashboard
-    if (userRole !== 'OWNER') {
+    if (!isOwner(userRole)) {
       if (!assignedPlantId || assignedPlantId === 'null' || !assignedDeptId || assignedDeptId === 'null') {
         console.warn("SECURITY: User blocked - no assigned plant/dept");
         navigate('/plant-selection');

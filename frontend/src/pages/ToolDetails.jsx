@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from '../config';
+import { canManageInventory, isOwner } from '../permissions';
 
 export default function ToolDetails() {
   const { id } = useParams(); 
@@ -9,7 +10,7 @@ export default function ToolDetails() {
   
   const userRole = localStorage.getItem('userRole');
   const activeDeptId = localStorage.getItem('activeDeptId');
-  const isInventory = userRole === 'INVENTORY' || userRole === 'OWNER';
+  const isInventory = canManageInventory(userRole);
   
   // 🚀 SECURITY FIX: Validate assigned IDs for non-OWNER users
   const assignedPlantId = localStorage.getItem('assignedPlantId');
@@ -120,7 +121,7 @@ export default function ToolDetails() {
 
   useEffect(() => {
     // 🚀 SECURITY FIX: Block unassigned non-OWNER users from accessing tool details
-    if (userRole && userRole !== 'OWNER') {
+    if (userRole && !isOwner(userRole)) {
       if (!assignedPlantId || assignedPlantId === 'null' || !assignedDeptId || assignedDeptId === 'null') {
         console.warn("SECURITY: User blocked - no assigned plant/dept for tool access");
         navigate('/plant-selection');

@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from '../config';
+import { canManageInventory } from '../permissions';
 
 export default function ProjectSelection() {
   const navigate = useNavigate();
   const userRole = localStorage.getItem('userRole');
+  const canManage = canManageInventory(userRole);
   const activeDeptId = localStorage.getItem('activeDeptId');
   
   const [projects, setProjects] = useState([]);
@@ -133,7 +135,7 @@ export default function ProjectSelection() {
             </div>
           </div>
 
-          {(userRole === 'INVENTORY' || userRole === 'OWNER') && (
+          {canManage && (
             <div className="col-md-6">
               <div className="card border-0 shadow-sm rounded-4 p-2 bg-white">
                 <form onSubmit={handleAddProject} className="d-flex gap-2 align-items-center mb-0">
@@ -188,7 +190,7 @@ export default function ProjectSelection() {
                     <div className="card-body d-flex justify-content-between align-items-center">
                       <h4 className="fw-bold text-dark mb-0">{p.projectName}</h4>
                       
-                      {(userRole === 'INVENTORY' || userRole === 'OWNER') && (
+                      {canManage && (
                         <button 
                           className="btn btn-outline-danger btn-sm border-0 px-2"
                           title="Delete Project"
