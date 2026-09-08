@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from '../config';
-import { canManageInventory } from '../permissions';
+import { canManageInventory, getUserRole } from '../permissions';
 
 export default function ProjectSelection() {
   const navigate = useNavigate();
-  const userRole = localStorage.getItem('userRole');
+  const userRole = getUserRole();
   const canManage = canManageInventory(userRole);
   const activeDeptId = localStorage.getItem('activeDeptId');
   
@@ -74,7 +74,7 @@ export default function ProjectSelection() {
         sessionStorage.removeItem(cacheKey); // 🚀 WIPE CACHE to force fresh fetch
         fetchProjects();
       }
-    } catch (err) {
+    } catch {
       alert("Failed to add project.");
     } finally {
       setIsAdding(false);
@@ -92,7 +92,7 @@ export default function ProjectSelection() {
           setProjects(updatedProjects);
           sessionStorage.setItem(cacheKey, JSON.stringify(updatedProjects)); // 🚀 UPDATE CACHE
         }
-      } catch (err) {
+      } catch {
         alert("Cannot delete project. Make sure no tools are assigned to it first.");
       }
     }

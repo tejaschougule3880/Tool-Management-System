@@ -1,18 +1,16 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { getUserRole, isOwner } from '../permissions';
 
 export default function OwnerMenu() {
   const navigate = useNavigate();
-  const userRole = localStorage.getItem('userRole');
-  const [isLoading, setIsLoading] = useState(false);
+  const userRole = getUserRole();
 
-  if (userRole !== 'OWNER') {
+  if (!isOwner(userRole)) {
     navigate('/dashboard');
     return null;
   }
 
   const handleManageInventory = () => {
-    setIsLoading(true);
     localStorage.removeItem('activeProjectId');
     localStorage.removeItem('activeProjectName');
     localStorage.removeItem('activePlantId');

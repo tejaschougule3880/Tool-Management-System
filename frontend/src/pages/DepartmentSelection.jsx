@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from '../config'; 
+import { getUserRole, isOwner } from '../permissions';
 
 export default function DepartmentSelection() {
   const navigate = useNavigate();
   
   // 1. Pull the user's role and the Plant they just clicked on
-  const userRole = localStorage.getItem('userRole');
+  const userRole = getUserRole();
   const activePlantId = localStorage.getItem('activePlantId');
   
   const [departments, setDepartments] = useState([]);
@@ -66,7 +67,7 @@ export default function DepartmentSelection() {
     const assignedDeptId = localStorage.getItem('assignedDeptId');
 
     // If they are not an OWNER, enforce the rules strictly
-    if (userRole !== 'OWNER') {
+    if (!isOwner(userRole)) {
       // If the user has no assigned plant, deny access (prevents implicit OWNER access)
       if (!assignedPlantId || assignedPlantId === 'null') {
         setError("Access Denied: No facility assigned to your account. Contact the administrator.");

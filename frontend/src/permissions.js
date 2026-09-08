@@ -1,3 +1,5 @@
+export const getUserRole = () => normalizeRole(localStorage.getItem('userRole'));
+
 export const normalizeRole = (role) => String(role || '').trim().toUpperCase();
 
 export const isOwner = (role) => normalizeRole(role) === 'OWNER';

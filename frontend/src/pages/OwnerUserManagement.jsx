@@ -2,17 +2,17 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from '../config';
+import { getUserRole, isOwner } from '../permissions';
 
 export default function OwnerUserManagement() {
   const navigate = useNavigate();
-  const userRole = localStorage.getItem('userRole');
+  const userRole = getUserRole();
 
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [plants, setPlants] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [selectedPlantId, setSelectedPlantId] = useState('');
-  const [selectedDeptId, setSelectedDeptId] = useState('');
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -28,7 +28,7 @@ export default function OwnerUserManagement() {
   const [editDepartments, setEditDepartments] = useState([]);
 
   useEffect(() => {
-    if (userRole !== 'OWNER') {
+    if (!isOwner(userRole)) {
       navigate('/dashboard');
       return;
     }
@@ -54,7 +54,6 @@ export default function OwnerUserManagement() {
   useEffect(() => {
     if (!selectedPlantId) {
       setDepartments([]);
-      setSelectedDeptId('');
       setFormData((prev) => ({ ...prev, deptId: '' }));
       return;
     }
@@ -114,7 +113,6 @@ export default function OwnerUserManagement() {
         setMessage({ type: 'success', text: response.data.message });
         setFormData({ username: '', password: '', role: '', plantId: '', deptId: '', email: '' });
         setSelectedPlantId('');
-        setSelectedDeptId('');
         refreshUsers();
       } else {
         setMessage({ type: 'danger', text: response.data.message || 'Failed to add user.' });

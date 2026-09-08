@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from '../config';
-import { canManageInventory } from '../permissions';
+import { canManageInventory, getUserRole } from '../permissions';
 
 export default function AddTool() {
   const navigate = useNavigate();
-  const userRole = localStorage.getItem('userRole');
+  const userRole = getUserRole();
   const activeProjectId = localStorage.getItem('activeProjectId');
 
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function AddTool() {
         setMessage({ type: 'success', text: response.data.message });
         setTimeout(() => navigate('/dashboard'), 1000);
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'danger', text: 'Error connecting to server.' });
     }
   };

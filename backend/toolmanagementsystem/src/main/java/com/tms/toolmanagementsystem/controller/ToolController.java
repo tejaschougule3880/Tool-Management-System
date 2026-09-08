@@ -4,7 +4,6 @@ import com.tms.toolmanagementsystem.entity.Tool;
 import com.tms.toolmanagementsystem.repository.ToolRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,10 +18,14 @@ public class ToolController {
     private ToolRepository toolRepository;
 
     // 🚀 CACHE: Speeds up the Dashboard's background sync massively
-    @Cacheable("tools")
     @GetMapping
-    public ResponseEntity<List<Tool>> getAllTools() {
-        List<Tool> tools = toolRepository.findAllTools();
+    public ResponseEntity<List<Tool>> getAllTools(
+            @RequestParam(required = false) Integer projectId,
+            jakarta.servlet.http.HttpServletRequest request) {
+        List<Tool> tools = toolRepository.findAllTools(
+                projectId,
+                getScopeId(request, "plantId"),
+                getScopeId(request, "deptId"));
         return ResponseEntity.ok(tools);
     }
 
@@ -54,12 +57,24 @@ public class ToolController {
 
     // Do NOT cache the individual getToolById because Edit pages need real-time data
     @GetMapping("/{id}")
-    public ResponseEntity<Tool> getToolById(@PathVariable Integer id) {
-        Tool tool = toolRepository.getToolById(id);
+    public ResponseEntity<Tool> getToolById(
+            @PathVariable Integer id,
+            jakarta.servlet.http.HttpServletRequest request) {
+        Tool tool = toolRepository.getToolById(
+                id,
+                getScopeId(request, "plantId"),
+                getScopeId(request, "deptId"));
         if (tool != null) {
             return ResponseEntity.ok(tool);
         }
         return ResponseEntity.notFound().build();
+    }
+
+    private Integer getScopeId(jakarta.servlet.http.HttpServletRequest request, String attribute) {
+        if ("OWNER".equals(request.getAttribute("userRole"))) return null;
+        Object value = request.getAttribute(attribute);
+        if (value == null || "null".equals(value)) return null;
+        return Integer.valueOf(value.toString());
     }
 
     // 🚀 EVICT: Wipe the "tools" cache because a tool's details were changed!

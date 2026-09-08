@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from '../config';
-import { canManageInventory, isOwner } from '../permissions';
+import { canManageInventory, getUserRole, isOwner } from '../permissions';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const userRole = localStorage.getItem('userRole'); 
+  const userRole = getUserRole();
   const activeProjectId = localStorage.getItem('activeProjectId');
   const activeProjectName = localStorage.getItem('activeProjectName');
   
@@ -38,7 +38,8 @@ export default function Dashboard() {
     
     const fetchTools = async () => {
       // 🚀 CACHE: Load instantly so the user doesn't wait
-      const cachedTools = sessionStorage.getItem('dashboard_tools');
+      const cacheKey = `dashboard_tools_${activeProjectId}`;
+      const cachedTools = sessionStorage.getItem(cacheKey);
       if (cachedTools) {
         setTools(JSON.parse(cachedTools));
       }
@@ -46,9 +47,11 @@ export default function Dashboard() {
       // 🚀 SILENT REFRESH: Always fetch real-time inventory in the background
       setIsSyncing(true);
       try {
-        const response = await axios.get(`${API_URL}/api/tools`);
+        const response = await axios.get(`${API_URL}/api/tools`, {
+          params: { projectId: activeProjectId }
+        });
         setTools(response.data);
-        sessionStorage.setItem('dashboard_tools', JSON.stringify(response.data));
+        sessionStorage.setItem(cacheKey, JSON.stringify(response.data));
       } catch (error) {
         console.error("Error fetching tools", error);
       } finally {
@@ -77,9 +80,9 @@ export default function Dashboard() {
         if (response.data.status === true) {
           const updatedTools = tools.filter(tool => tool.toolId !== toolId);
           setTools(updatedTools);
-          sessionStorage.setItem('dashboard_tools', JSON.stringify(updatedTools)); // Sync cache
+          sessionStorage.setItem(`dashboard_tools_${activeProjectId}`, JSON.stringify(updatedTools));
         }
-      } catch (error) {
+      } catch {
         alert("Error: Could not delete tool.");
       }
     }

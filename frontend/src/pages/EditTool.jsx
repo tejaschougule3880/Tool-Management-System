@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from '../config';
-import { canManageInventory } from '../permissions';
+import { canManageInventory, getUserRole } from '../permissions';
 
 export default function EditTool() {
   const { id } = useParams(); 
   const navigate = useNavigate();
-  const userRole = localStorage.getItem('userRole');
+  const userRole = getUserRole();
 
   useEffect(() => {
     if (!canManageInventory(userRole)) navigate('/dashboard');
@@ -38,7 +38,7 @@ export default function EditTool() {
         setFormData(response.data);
         const historyResponse = await axios.get(`${API_URL}/api/tools/${id}/changes`);
         setChangeHistory(historyResponse.data);
-      } catch (error) {
+      } catch {
         setMessage({ type: 'danger', text: 'Error loading tool details.' });
       }
     };
@@ -60,7 +60,7 @@ export default function EditTool() {
       await axios.delete(`${API_URL}/api/tools/changes/${historyId}`);
       setChangeHistory((currentHistory) => currentHistory.filter(record => record.historyId !== historyId));
       setSelectedChangeHistoryIds((currentIds) => currentIds.filter(id => id !== historyId));
-    } catch (error) {
+    } catch {
       setMessage({ type: 'danger', text: 'Failed to delete change history record.' });
     }
   };
@@ -88,7 +88,7 @@ export default function EditTool() {
         record => !selectedChangeHistoryIds.includes(record.historyId)
       ));
       setSelectedChangeHistoryIds([]);
-    } catch (error) {
+    } catch {
       setMessage({ type: 'danger', text: 'Failed to delete selected change history records.' });
     }
   };
@@ -100,7 +100,7 @@ export default function EditTool() {
       await axios.delete(`${API_URL}/api/tools/changes/tool/${id}/clear`);
       setChangeHistory([]);
       setSelectedChangeHistoryIds([]);
-    } catch (error) {
+    } catch {
       setMessage({ type: 'danger', text: 'Failed to clear change history.' });
     }
   };
@@ -149,7 +149,7 @@ export default function EditTool() {
         setMessage({ type: 'success', text: response.data.message });
         setTimeout(() => navigate('/dashboard'), 1000);
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'danger', text: 'Error updating tool.' });
     }
   };

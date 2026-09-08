@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from '../config';
+import { getUserRole, isOwner } from '../permissions';
 
 export default function PlantSelection() {
   const navigate = useNavigate();
-  const userRole = localStorage.getItem('userRole');
+  const userRole = getUserRole();
   const [plants, setPlants] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null); // 🚀 NEW: State to hold access denied messages
@@ -46,7 +47,7 @@ export default function PlantSelection() {
     const assignedPlantId = localStorage.getItem('assignedPlantId');
 
     // 🚀 NEW SECURITY CHECK: Deny non-OWNER users who have no assigned facility
-    if (userRole !== 'OWNER') {
+    if (!isOwner(userRole)) {
       if (!assignedPlantId || assignedPlantId === 'null') {
         setError("Access Denied: No facility assigned to your account. Contact the administrator.");
         setTimeout(() => setError(null), 3000);
@@ -86,7 +87,7 @@ export default function PlantSelection() {
             <h2 className="fw-bold text-primary mb-1">Select Facility</h2>
           </div>
           <div className="d-flex gap-2">
-            {userRole === 'OWNER' && (
+            {isOwner(userRole) && (
               <button className="btn btn-outline-primary btn-sm rounded-pill px-4 fw-bold" onClick={handleBackToMenu}>
                 Back to Menu
               </button>

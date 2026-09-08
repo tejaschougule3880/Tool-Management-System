@@ -37,21 +37,33 @@ public class ToolRepository {
         }
     }
 
-    public List<Tool> findAllTools() {
+    public List<Tool> findAllTools(Integer projectId, Integer plantId, Integer departmentId) {
         List<Tool> tools = new ArrayList<>();
 
-
-        
         String sql = "SELECT t.*, " +
                 "(SELECT COUNT(*) FROM tool_instance ti WHERE ti.tool_id = t.tool_id AND ti.current_status = 'AVAILABLE') AS available_qty, " +
                 "(SELECT COUNT(*) FROM tool_instance ti WHERE ti.tool_id = t.tool_id AND ti.current_status = 'SHARPENING') AS sharpening_qty, " +
                 "(SELECT COUNT(*) FROM tool_instance ti WHERE ti.tool_id = t.tool_id AND ti.current_status = 'IN_USE') AS in_use_qty, " +
                 "(SELECT COUNT(*) FROM tool_instance ti WHERE ti.tool_id = t.tool_id AND ti.current_status = 'DAMAGED') AS damaged_qty " +
-                "FROM tool t";
+                "FROM tool t " +
+                "JOIN project p ON p.project_id = t.project_id " +
+                "JOIN department d ON d.department_id = p.department_id " +
+                "JOIN plant pl ON pl.plant_id = d.plant_id " +
+                "WHERE (? IS NULL OR p.project_id = ?) " +
+                "AND (? IS NULL OR pl.plant_id = ?) " +
+                "AND (? IS NULL OR d.department_id = ?)";
 
         try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            setNullableInteger(ps, 1, projectId);
+            setNullableInteger(ps, 2, projectId);
+            setNullableInteger(ps, 3, plantId);
+            setNullableInteger(ps, 4, plantId);
+            setNullableInteger(ps, 5, departmentId);
+            setNullableInteger(ps, 6, departmentId);
+
+            try (ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
                 Tool tool = new Tool();
@@ -96,10 +108,16 @@ public class ToolRepository {
 
                 tools.add(tool);
             }
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
         return tools;
+    }
+
+    private void setNullableInteger(PreparedStatement ps, int index, Integer value) throws java.sql.SQLException {
+        if (value == null) ps.setNull(index, java.sql.Types.INTEGER);
+        else ps.setInt(index, value);
     }
     // 🚀 1. THE FIXED saveTool()
     public boolean saveTool(Tool tool) {
@@ -230,12 +248,22 @@ public class ToolRepository {
 
     // 1. Fetch a single tool by its ID for the Edit form (Notice table name is `tool`)
     // 1. Fetch a single tool by its ID for the Edit form
-    public Tool getToolById(Integer toolId) {
-        String sql = "SELECT * FROM tool WHERE tool_id = ?";
+    public Tool getToolById(Integer toolId, Integer plantId, Integer departmentId) {
+        String sql = "SELECT t.* FROM tool t " +
+                "JOIN project p ON p.project_id = t.project_id " +
+                "JOIN department d ON d.department_id = p.department_id " +
+                "JOIN plant pl ON pl.plant_id = d.plant_id " +
+                "WHERE t.tool_id = ? " +
+                "AND (? IS NULL OR pl.plant_id = ?) " +
+                "AND (? IS NULL OR d.department_id = ?)";
         try (Connection con = DBConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, toolId);
+            setNullableInteger(ps, 2, plantId);
+            setNullableInteger(ps, 3, plantId);
+            setNullableInteger(ps, 4, departmentId);
+            setNullableInteger(ps, 5, departmentId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     Tool tool = new Tool();
@@ -259,6 +287,10 @@ public class ToolRepository {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public Tool getToolById(Integer toolId) {
+        return getToolById(toolId, null, null);
     }
 
     // 2. Update the tool details in the database (Notice table name is `tool`)

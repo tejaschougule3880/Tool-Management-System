@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from '../config';
-import { canManageInventory, isOwner } from '../permissions';
+import { canManageInventory, getUserRole, isOwner } from '../permissions';
 
 export default function ToolDetails() {
   const { id } = useParams(); 
   const navigate = useNavigate();
   
-  const userRole = localStorage.getItem('userRole');
+  const userRole = getUserRole();
   const activeDeptId = localStorage.getItem('activeDeptId');
   const isInventory = canManageInventory(userRole);
   
@@ -50,25 +50,13 @@ export default function ToolDetails() {
   const [showInstanceManager, setShowInstanceManager] = useState(false);
   const [instancesLoading, setInstancesLoading] = useState(false);
 
-  const handleDeleteHistoryRow = async (movementId) => {
-    if (window.confirm("Are you sure you want to delete this log record?")) {
-      try {
-        await axios.delete(`${API_URL}/api/movements/${movementId}`);
-        setHistory(history.filter(h => h.movementId !== movementId)); 
-        setSelectedHistoryIds(selectedHistoryIds.filter(id => id !== movementId));
-      } catch (error) {
-        alert("Failed to delete record.");
-      }
-    }
-  };
-
   const handleClearAllHistory = async () => {
     if (window.confirm("🚨 WARNING: Are you sure you want to wipe ALL history for this tool?")) {
       try {
         await axios.delete(`${API_URL}/api/movements/tool/${id}/clear`);
         setHistory([]); 
         setSelectedHistoryIds([]);
-      } catch (error) {
+      } catch {
         alert("Failed to clear history.");
       }
     }
@@ -98,7 +86,7 @@ export default function ToolDetails() {
         ));
         setHistory(history.filter(h => !selectedHistoryIds.includes(h.movementId)));
         setSelectedHistoryIds([]); 
-      } catch (error) {
+      } catch {
         alert("Error deleting some records. Please refresh and check the ledger.");
       }
     }
@@ -141,7 +129,7 @@ export default function ToolDetails() {
           const machineRes = await axios.get(`${API_URL}/api/machines`);
           setMachines(machineRes.data);
           sessionStorage.setItem('master_machines', JSON.stringify(machineRes.data));
-        } catch (error) { console.error("Failed to load machines"); }
+        } catch { console.error("Failed to load machines"); }
       }
 
       if (cachedProjects) {
@@ -152,14 +140,14 @@ export default function ToolDetails() {
           const projectRes = await axios.get(projectUrl);
           setProjects(projectRes.data);
           sessionStorage.setItem(`projects_dept_${activeDeptId}`, JSON.stringify(projectRes.data));
-        } catch (error) { console.error("Failed to load projects"); }
+        } catch { console.error("Failed to load projects"); }
       }
 
       // 🚀 REAL-TIME: Always fetch Movement History fresh
       try {
         const historyRes = await axios.get(`${API_URL}/api/movements/tool/${id}`);
         setHistory(historyRes.data);
-      } catch (error) { console.error("Failed to load history"); }
+      } catch { console.error("Failed to load history"); }
 
       try {
         const toolRes = await axios.get(`${API_URL}/api/tools/${id}`);
@@ -253,12 +241,12 @@ export default function ToolDetails() {
         setMovement({ ...movement, remarks: '', challanNo: '', machineId: '', projectId: '' });
         
         // 🚀 CACHE INVALIDATION: Wipe Dashboard cache so it fetches fresh numbers next time
-        sessionStorage.removeItem('dashboard_tools');
+        sessionStorage.removeItem(`dashboard_tools_${localStorage.getItem('activeProjectId')}`);
 
         setTimeout(() => setMessage(null), 3000);
         setTimeout(() => window.location.reload(), 1500); 
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'danger', text: 'Failed to record movement.' });
     }
   };
@@ -272,9 +260,9 @@ export default function ToolDetails() {
         currentInstance => currentInstance.instanceId !== instance.instanceId
       ));
       setSelectedInstanceIds((currentIds) => currentIds.filter(id => id !== instance.instanceId));
-      sessionStorage.removeItem('dashboard_tools');
+      sessionStorage.removeItem(`dashboard_tools_${localStorage.getItem('activeProjectId')}`);
       setMessage({ type: 'success', text: `Serial ${instance.serialNumber} deleted successfully.` });
-    } catch (error) {
+    } catch {
       setMessage({ type: 'danger', text: 'Failed to delete physical tool.' });
     }
   };
@@ -290,7 +278,7 @@ export default function ToolDetails() {
     try {
       const instancesRes = await axios.get(`${API_URL}/api/tool-instances/${id}`);
       setToolInstances(instancesRes.data);
-    } catch (error) {
+    } catch {
       setMessage({ type: 'danger', text: 'Failed to load physical tools.' });
     } finally {
       setInstancesLoading(false);
@@ -319,9 +307,9 @@ export default function ToolDetails() {
         instance => !selectedInstanceIds.includes(instance.instanceId)
       ));
       setSelectedInstanceIds([]);
-      sessionStorage.removeItem('dashboard_tools');
+      sessionStorage.removeItem(`dashboard_tools_${localStorage.getItem('activeProjectId')}`);
       setMessage({ type: 'success', text: 'Selected physical tools deleted successfully.' });
-    } catch (error) {
+    } catch {
       setMessage({ type: 'danger', text: 'Failed to delete selected physical tools.' });
     }
   };
