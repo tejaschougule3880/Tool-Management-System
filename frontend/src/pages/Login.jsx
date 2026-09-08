@@ -69,8 +69,8 @@ export default function Login() {
           localStorage.setItem('assignedDeptId', response.data.deptId);
         }
         
-        // 🚀 Route based on role: OWNER goes to menu, others to plant selection
-        const nextRoute = response.data.role === 'OWNER' ? '/owner-menu' : '/plant-selection';
+        // Send every role through the same workspace flow so OWNER sees the full inventory dashboard.
+        const nextRoute = '/plant-selection';
         setTimeout(() => navigate(nextRoute), 1000);
         
       } else {
