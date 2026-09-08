@@ -600,7 +600,7 @@ export default function ToolDetails() {
         </div>
       )}
 
-      {(userRole === 'INVENTORY' || userRole === 'OWNER') && !showInstanceManager && (
+      {isInventory && !showInstanceManager && (
         <div className="text-center mt-4">
           <button type="button" className="btn btn-outline-primary fw-bold rounded-pill px-4" onClick={handleToggleInstanceManager}>
             Manage Serial Tools
@@ -608,7 +608,7 @@ export default function ToolDetails() {
         </div>
       )}
 
-      {(userRole === 'INVENTORY' || userRole === 'OWNER') && showInstanceManager && (
+      {isInventory && showInstanceManager && (
         <div className="card shadow-sm border-0 mx-auto mt-4" style={{ maxWidth: '900px' }}>
           <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center gap-3">
             <div>
