@@ -57,7 +57,7 @@ export default function Login() {
         localStorage.removeItem('activeProjectName');
 
         // Save user role
-        const role = response.data.role;
+        const role = String(response.data.role || '').trim().toUpperCase();
         localStorage.setItem('userRole', role);
         localStorage.setItem('username', username);
 
