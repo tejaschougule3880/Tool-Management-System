@@ -9,7 +9,7 @@ export default function ToolDetails() {
   
   const userRole = localStorage.getItem('userRole');
   const activeDeptId = localStorage.getItem('activeDeptId');
-  const isInventory = userRole === 'INVENTORY';
+  const isInventory = userRole === 'INVENTORY' || userRole === 'OWNER';
   
   // 🚀 SECURITY FIX: Validate assigned IDs for non-OWNER users
   const assignedPlantId = localStorage.getItem('assignedPlantId');

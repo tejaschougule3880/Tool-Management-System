@@ -13,7 +13,7 @@ export default function Dashboard() {
   const assignedPlantId = localStorage.getItem('assignedPlantId');
   const assignedDeptId = localStorage.getItem('assignedDeptId');
 
-  const isInventory = userRole === 'INVENTORY';
+  const isInventory = userRole === 'INVENTORY' || userRole === 'OWNER';
   const canManage = userRole === 'INVENTORY' || userRole === 'OWNER';
 
   const [tools, setTools] = useState([]); 
